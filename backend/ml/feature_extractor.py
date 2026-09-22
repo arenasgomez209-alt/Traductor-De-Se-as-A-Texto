@@ -1,14 +1,14 @@
 # Importamos numpy para operaciones vectoriales y matriciales eficientes
 import numpy as np
-# Importamos List y Union para tipado estático claro
+# Importamos List, Union y Dict para tipado estático claro
 from typing import List, Union, Dict, Any
 
-# Función principal para normalizar los puntos clave de la mano
+# Función principal para extraer características avanzadas e invariantes de los 21 puntos clave
 def normalize_landmarks(raw_landmarks: Union[List[Dict[str, float]], List[List[float]], np.ndarray, List[float]]) -> np.ndarray:
     """
-    Normaliza 21 puntos clave (x, y, z) de la mano para hacerlos invariantes
-    a la traslación (posición en pantalla) y a la escala (distancia a la cámara).
-    Retorna un vector NumPy aplanado de longitud 63.
+    Normaliza 21 puntos clave (x, y, z) de la mano y calcula características anatómicas
+    adicionales (ratios de extensión de dedos y distancias entre puntas).
+    Retorna un vector NumPy de características de longitud 74, altamente robusto e invariante.
     """
     # Lista temporal para acumular las coordenadas ordenadas
     points = []
@@ -66,8 +66,45 @@ def normalize_landmarks(raw_landmarks: Union[List[Dict[str, float]], List[List[f
         # Si la distancia máxima es casi cero, conservamos las coordenadas relativas
         normalized_coords = relative_coords
 
-    # Aplanamos la matriz de (21, 3) a un vector unidimensional de longitud 63
-    feature_vector = normalized_coords.flatten()
+    # Paso 3: Características Anatómicas Invariantes de los Dedos
+    # Índices estándar de MediaPipe:
+    # Puntas de los 5 dedos: Pulgar(4), Índice(8), Medio(12), Anular(16), Meñique(20)
+    # Articulaciones PIP intermedias: Pulgar(2), Índice(6), Medio(10), Anular(14), Meñique(18)
+    tips = [4, 8, 12, 16, 20]
+    pips = [2, 6, 10, 14, 18]
 
-    # Retornamos el vector de características listo para el clasificador
-    return feature_vector
+    # Calculamos el ratio de extensión de cada dedo: distancia(punta, muñeca) / distancia(pip, muñeca)
+    # Si el dedo está estirado, el ratio es > 1.2; si está doblado hacia la palma, el ratio es < 0.95
+    # Este ratio es 100% inmune a rotaciones, inclinación y escala de la mano
+    extension_ratios = []
+    for tip_idx, pip_idx in zip(tips, pips):
+        d_tip = np.linalg.norm(relative_coords[tip_idx])
+        d_pip = np.linalg.norm(relative_coords[pip_idx])
+        ratio = float(d_tip / (d_pip + 1e-6))
+        extension_ratios.append(ratio)
+
+    # Paso 4: Distancias euclidianas relativas entre puntas de dedos clave
+    # Permite diferenciar con precisión señas como:
+    # - 'U' (índice y medio juntos) vs 'V' (índice y medio separados)
+    # - 'F' y 'O' (pulgar tocando índice) vs 'D' o 'B'
+    tip_distances = [
+        float(np.linalg.norm(normalized_coords[4] - normalized_coords[8])),   # Pulgar - Índice
+        float(np.linalg.norm(normalized_coords[8] - normalized_coords[12])),  # Índice - Medio
+        float(np.linalg.norm(normalized_coords[12] - normalized_coords[16])), # Medio - Anular
+        float(np.linalg.norm(normalized_coords[16] - normalized_coords[20])), # Anular - Meñique
+        float(np.linalg.norm(normalized_coords[4] - normalized_coords[12])),  # Pulgar - Medio
+        float(np.linalg.norm(normalized_coords[4] - normalized_coords[20])),  # Pulgar - Meñique
+    ]
+
+    # Vector 1: Coordenadas espaciales 3D normalizadas aplanadas (63 valores)
+    base_features = normalized_coords.flatten()
+
+    # Concatenamos todo en un vector unificado de 74 características anatómicas
+    full_feature_vector = np.concatenate([
+        base_features,
+        np.array(extension_ratios, dtype=np.float32),
+        np.array(tip_distances, dtype=np.float32)
+    ])
+
+    # Retornamos el vector de características enriquecido
+    return full_feature_vector

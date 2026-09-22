@@ -9,6 +9,7 @@ import sys
 import os
 # Importamos time para cálculo de FPS (cuadros por segundo)
 import time
+from collections import deque, Counter
 # Importamos OpenCV para captura de video e interfaz gráfica de escritorio
 import cv2
 # Importamos NumPy para creación de capas gráficas e interfaces
@@ -143,6 +144,9 @@ def main():
     current_letter = "NINGUNA"
     current_confidence = 0.0
 
+    # Cola de historial para suavizado temporal y votación por mayoría (5 cuadros)
+    history_queue = deque(maxlen=5)
+
     # Nombre de la ventana OpenCV
     window_name = "Traductor de Senas a Texto - Atencion al Cliente"
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
@@ -175,14 +179,31 @@ def main():
                 # Dibujamos el esqueleto sobre la imagen
                 detector.draw_landmarks(frame, landmarks)
 
-                # Clasificamos la pose con RandomForest
+                # Clasificamos la pose con RandomForest (74 características anatómicas)
                 pred = predictor.predict(landmarks)
-                current_letter = pred["letter"]
-                current_confidence = pred["confidence"]
+                raw_letter = pred["letter"]
+                raw_conf = pred["confidence"]
 
-                # Incorporamos al búfer de texto
-                buffer_mgr.add_prediction(current_letter, current_confidence)
+                # Añadimos al historial de votación si la certeza es aceptable
+                if raw_conf >= 0.40:
+                    history_queue.append(raw_letter)
+                else:
+                    history_queue.append("NINGUNA")
+
+                # Votación por mayoría en los últimos cuadros
+                counts = Counter(history_queue)
+                voted_letter, vote_count = counts.most_common(1)[0]
+
+                if vote_count >= 3 and voted_letter != "NINGUNA":
+                    current_letter = voted_letter
+                    current_confidence = raw_conf
+                    # Incorporamos al búfer de texto
+                    buffer_mgr.add_prediction(current_letter, current_confidence)
+                else:
+                    current_letter = voted_letter if voted_letter != "NINGUNA" else "-"
+                    current_confidence = raw_conf
             else:
+                history_queue.clear()
                 current_letter = "NINGUNA"
                 current_confidence = 0.0
 
