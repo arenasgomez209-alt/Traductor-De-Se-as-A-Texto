@@ -56,6 +56,9 @@ app.add_middleware(
     allow_headers=["*"],            # Permitimos todos los encabezados
 )
 
+# Importamos colecciones para suavizado temporal y votación por mayoría
+from collections import deque, Counter
+
 # Inicializamos los componentes del sistema en memoria
 predictor = GesturePredictor()
 hand_detector = HandDetector()
@@ -63,6 +66,8 @@ buffer_mgr = TextBufferManager(
     min_consecutive_frames=STABILITY_THRESHOLD,
     min_confidence=MIN_CONFIDENCE_THRESHOLD
 )
+# Cola de historial para votación temporal en el endpoint web
+web_history_queue = deque(maxlen=5)
 
 # Endpoint 1 de Swagger: POST /api/v1/predict-gesture
 # Recibe coordenadas de los puntos de la mano y devuelve {"letter": "A", "confidence": 0.92}
@@ -172,11 +177,15 @@ def predict_frame(payload: PredictFrameRequest):
         if frame is None:
             return {"letter": "UNKNOWN", "confidence": 0.0, "buffer": buffer_mgr.get_buffer(), "landmarks": []}
 
+        # Volteamos horizontalmente la imagen para que coincida exactamente con la orientación espejo de la cámara
+        frame = cv2.flip(frame, 1)
+
         # Detectamos manos y extraemos puntos clave con MediaPipe
         hands = hand_detector.detect(frame)
 
         # Si no se detectó ninguna mano en el fotograma
         if not hands or len(hands) == 0:
+            web_history_queue.clear()
             return {
                 "letter": "NINGUNA",
                 "confidence": 0.0,
@@ -187,13 +196,28 @@ def predict_frame(payload: PredictFrameRequest):
         # Tomamos los 21 puntos de la primera mano detectada
         landmarks = hands[0]
 
-        # Ejecutamos la clasificación con RandomForest
+        # Ejecutamos la clasificación con RandomForest (74 características anatómicas)
         pred = predictor.predict(landmarks)
-        letter = pred["letter"]
-        confidence = pred["confidence"]
+        raw_letter = pred["letter"]
+        raw_confidence = pred["confidence"]
 
-        # Evaluamos para incorporar al búfer
-        buf = buffer_mgr.add_prediction(letter, confidence)
+        # Suavizado temporal y votación por mayoría (5 fotogramas)
+        if raw_confidence >= 0.40:
+            web_history_queue.append(raw_letter)
+        else:
+            web_history_queue.append("NINGUNA")
+
+        counts = Counter(web_history_queue)
+        voted_letter, vote_count = counts.most_common(1)[0]
+
+        if vote_count >= 3 and voted_letter != "NINGUNA":
+            letter = voted_letter
+            confidence = raw_confidence
+            buf = buffer_mgr.add_prediction(letter, confidence)
+        else:
+            letter = voted_letter if voted_letter != "NINGUNA" else "-"
+            confidence = raw_confidence
+            buf = buffer_mgr.get_buffer()
 
         # Retornamos resultado completo al frontend
         return {

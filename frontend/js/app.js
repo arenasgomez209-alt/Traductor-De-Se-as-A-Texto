@@ -101,17 +101,17 @@ function stopCamera() {
 async function captureAndSendFrame() {
   if (!isStreaming || video.readyState !== 4) return;
 
-  // Creamos un canvas temporal en memoria para codificar la imagen
+  // Creamos un canvas temporal en memoria con resolución óptima para MediaPipe (640x480)
   const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = 320;
-  tempCanvas.height = 240;
+  tempCanvas.width = 640;
+  tempCanvas.height = 480;
   const tempCtx = tempCanvas.getContext('2d');
 
-  // Dibujamos el cuadro actual del video escalado para optimizar transferencia
+  // Dibujamos el cuadro actual del video escalado con nitidez
   tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
 
-  // Convertimos a cadena Base64 en formato JPEG comprimido
-  const base64Image = tempCanvas.toDataURL('image/jpeg', 0.6);
+  // Convertimos a cadena Base64 en formato JPEG de alta calidad
+  const base64Image = tempCanvas.toDataURL('image/jpeg', 0.85);
 
   try {
     // Enviamos petición POST al backend

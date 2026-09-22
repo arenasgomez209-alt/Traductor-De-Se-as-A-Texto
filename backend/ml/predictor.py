@@ -45,6 +45,9 @@ class GesturePredictor:
             # Ejecutamos el entrenamiento para generar el modelo
             train_and_save_model(models_dir)
 
+        # Registramos la fecha de última modificación para recarga dinámica
+        self.last_load_time = os.path.getmtime(self.model_path) if os.path.exists(self.model_path) else 0
+
         # Cargamos el modelo clasificador con joblib
         self.model = joblib.load(self.model_path)
 
@@ -56,6 +59,21 @@ class GesturePredictor:
             # Si no existe el archivo JSON, extraemos las clases directamente del modelo
             self.classes = list(self.model.classes_)
 
+    # Método para verificar si el modelo fue reentrenado y recargarlo en memoria
+    def reload_if_updated(self) -> None:
+        if os.path.exists(self.model_path):
+            current_mtime = os.path.getmtime(self.model_path)
+            if current_mtime > self.last_load_time:
+                print("[GesturePredictor] Detectada actualización del modelo en disco. Recargando...")
+                self.model = joblib.load(self.model_path)
+                if os.path.exists(self.classes_path):
+                    with open(self.classes_path, 'r', encoding='utf-8') as f:
+                        self.classes = json.load(f)
+                else:
+                    self.classes = list(self.model.classes_)
+                self.last_load_time = current_mtime
+                print("[GesturePredictor] ¡Nuevo modelo recargado exitosamente en memoria!")
+
     # Método principal para clasificar puntos clave de la mano
     def predict(self, raw_landmarks: Union[List[Dict[str, float]], List[List[float]], np.ndarray, List[float]]) -> Dict[str, Any]:
         """
@@ -66,7 +84,10 @@ class GesturePredictor:
             "confidence": 0.92
         }
         """
-        # Extraemos el vector de características normalizado (dimensión 63)
+        # Verificamos si hubo reentrenamiento reciente y recargamos automáticamente
+        self.reload_if_updated()
+
+        # Extraemos el vector de características normalizado (dimensión 74)
         features = normalize_landmarks(raw_landmarks)
 
         # Reorganizamos el vector como una matriz de 1 fila (1, 63)
