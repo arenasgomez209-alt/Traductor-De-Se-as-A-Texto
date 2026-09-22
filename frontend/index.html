@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<!-- Declaración de documento HTML5 -->
+<html lang="es">
+<head>
+  <!-- Codificación de caracteres estándar UTF-8 -->
+  <meta charset="UTF-8">
+  <!-- Configuración de escala responsiva para móviles y escritorios -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Título de la pestaña del navegador -->
+  <title>Traductor de Lengua de Señas a Texto | Atención al Cliente</title>
+  <!-- Fuente moderna 'Outfit' y 'Inter' desde Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- Hoja de estilos CSS propia con diseño moderno -->
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <!-- Contenedor principal de la aplicación -->
+  <div class="app-container">
+
+    <!-- Encabezado superior con logotipo y estado del microservicio -->
+    <header class="app-header">
+      <div class="header-brand">
+        <!-- Ícono de accesibilidad y comunicación -->
+        <div class="brand-icon">🤟</div>
+        <div class="brand-info">
+          <!-- Título principal del caso de uso -->
+          <h1 class="brand-title">Traductor de Lengua de Señas a Texto</h1>
+          <!-- Subtítulo con descripción del problema social real -->
+          <p class="brand-subtitle">Módulo de accesibilidad para ventanillas de atención al cliente</p>
+        </div>
+      </div>
+      <!-- Enlaces y botones de acción rápida en el encabezado -->
+      <div class="header-actions">
+        <!-- Enlace interactivo hacia la documentación Swagger UI generada por FastAPI -->
+        <a href="/docs" target="_blank" class="swagger-badge" title="Abrir documentación Swagger">
+          <span class="pulse-dot"></span>
+          <span>Swagger API (/docs)</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Área principal con diseño en dos columnas: Visor de cámara y Panel de traducción -->
+    <main class="main-layout">
+
+      <!-- Columna izquierda: Visor de cámara web en vivo -->
+      <section class="video-section card">
+        <div class="card-header">
+          <h2 class="card-title">📹 Entrada de Video en Vivo</h2>
+          <!-- Selector de estado de cámara -->
+          <div class="camera-status" id="cameraStatus">
+            <span class="status-indicator active"></span>
+            <span class="status-label">Cámara Activa</span>
+          </div>
+        </div>
+
+        <!-- Contenedor del reproductor de video y canvas de anotaciones -->
+        <div class="video-wrapper">
+          <!-- Elemento de video HTML5 para capturar el feed de la cámara -->
+          <video id="webcamVideo" autoplay playsinline muted></video>
+          <!-- Canvas superpuesto para capturar fotogramas y dibujar puntos clave -->
+          <canvas id="landmarkCanvas"></canvas>
+          <!-- Mensaje superpuesto en caso de cámara inactiva -->
+          <div class="video-placeholder" id="videoPlaceholder">
+            <div class="placeholder-icon">📷</div>
+            <p>Habilita la cámara web o usa las señas de prueba rápida abajo</p>
+            <button id="toggleCameraBtn" class="btn btn-primary">Encender Cámara</button>
+          </div>
+        </div>
+
+        <!-- Barra inferior de controles de la cámara -->
+        <div class="video-controls">
+          <button id="stopCameraBtn" class="btn btn-secondary">
+            <span>⏸️ Pausar Cámara</span>
+          </button>
+          <span class="fps-meter" id="fpsMeter">FPS: --</span>
+        </div>
+      </section>
+
+      <!-- Columna derecha: Tarjeta de letra detectada y búfer acumulado -->
+      <section class="panel-section">
+
+        <!-- Tarjeta de Seña Actual Reconocida -->
+        <div class="card gesture-card">
+          <div class="card-header">
+            <h2 class="card-title">🎯 Seña Detectada</h2>
+            <span class="ai-badge">MediaPipe + RandomForest</span>
+          </div>
+          <div class="gesture-display">
+            <!-- Letra grande predicha -->
+            <div class="detected-letter" id="detectedLetter">-</div>
+            <!-- Medidor de certeza / confianza -->
+            <div class="confidence-container">
+              <div class="confidence-labels">
+                <span>Nivel de Confianza:</span>
+                <strong id="confidenceValue">0%</strong>
+              </div>
+              <div class="confidence-track">
+                <div class="confidence-bar" id="confidenceBar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta del Búfer de Texto Acumulado en Ventanilla -->
+        <div class="card buffer-card">
+          <div class="card-header">
+            <h2 class="card-title">💬 Texto para el Asesor de Ventanilla</h2>
+            <span class="buffer-badge">Búfer en Memoria</span>
+          </div>
+          <!-- Área de texto del cliente -->
+          <div class="buffer-display" id="bufferDisplay">
+            <p class="placeholder-text">Las palabras traducidas aparecerán aquí a medida que se realicen las señas...</p>
+          </div>
+          <!-- Acciones sobre el búfer -->
+          <div class="buffer-actions">
+            <!-- Botón para ejecutar el endpoint POST /api/v1/clear-buffer -->
+            <button id="clearBufferBtn" class="btn btn-danger">
+              <span>🗑️ Limpiar Búfer (POST /clear-buffer)</span>
+            </button>
+            <button id="addSpaceBtn" class="btn btn-secondary">
+              <span>␣ Añadir Espacio</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Prueba Rápida con Señas Preconfiguradas (Simulador sin cámara) -->
+        <div class="card simulation-card">
+          <div class="card-header">
+            <h3 class="card-subtitle">⚡ Simulador de Señas (Prueba Rápida al API)</h3>
+          </div>
+          <p class="simulation-desc">Presiona cualquier letra para enviar sus 21 coordenadas al endpoint <code>POST /api/v1/predict-gesture</code>:</p>
+          <div class="quick-buttons" id="quickButtons">
+            <!-- Botones generados dinámicamente o predefinidos -->
+            <button class="sign-btn" data-letter="A">A</button>
+            <button class="sign-btn" data-letter="B">B</button>
+            <button class="sign-btn" data-letter="C">C</button>
+            <button class="sign-btn" data-letter="D">D</button>
+            <button class="sign-btn" data-letter="E">E</button>
+            <button class="sign-btn" data-letter="F">F</button>
+            <button class="sign-btn" data-letter="H">H</button>
+            <button class="sign-btn" data-letter="I">I</button>
+            <button class="sign-btn" data-letter="L">L</button>
+            <button class="sign-btn" data-letter="O">O</button>
+            <button class="sign-btn" data-letter="U">U</button>
+            <button class="sign-btn" data-letter="V">V</button>
+            <button class="sign-btn" data-letter="W">W</button>
+            <button class="sign-btn" data-letter="Y">Y</button>
+            <button class="sign-btn" data-letter="ESPACIO">␣ Espacio</button>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- Pie de página con información del proyecto y del equipo -->
+    <footer class="app-footer">
+      <p>Traductor de Lengua de Señas a Texto para Atención al Cliente | Monorepo FastAPI + MediaPipe + Scikit-Learn</p>
+    </footer>
+
+  </div>
+
+  <!-- Script JavaScript con la lógica de conexión y actualización en tiempo real -->
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

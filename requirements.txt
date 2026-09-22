@@ -1,0 +1,23 @@
+# ==============================================================================
+# ARCHIVO DE DEPENDENCIAS (requirements.txt)
+# ==============================================================================
+# Servidor web y API REST moderna
+fastapi>=0.110.0
+# Servidor ASGI para ejecutar FastAPI
+uvicorn[standard]>=0.28.0
+# Validación y tipado de datos
+pydantic>=2.6.0
+# Visión por computadora y procesamiento de video
+opencv-python>=4.9.0
+# Detección de manos y extracción de keypoints (Google MediaPipe)
+mediapipe>=0.10.0
+# Algoritmos de Machine Learning (RandomForestClassifier)
+scikit-learn>=1.4.0
+# Serialización y carga de modelos entrenados
+joblib>=1.3.0
+# Manejo de arreglos multidimensionales y operaciones matemáticas
+numpy>=1.26.0
+# Cliente de peticiones HTTP para pruebas automatizadas
+requests>=2.31.0
+# Cliente HTTP asíncrono para TestClient de FastAPI
+httpx>=0.28.0
