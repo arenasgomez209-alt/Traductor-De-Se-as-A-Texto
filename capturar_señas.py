@@ -113,10 +113,10 @@ def main():
             cv2.rectangle(overlay, (0, h - 70), (w, h), (20, 20, 30), -1)
             cv2.addWeighted(overlay, 0.85, frame, 0.15, 0, frame)
 
-            # Textos informativos
-            cv2.putText(frame, "Grabador de Senas - Pulsa una tecla de letra (A-Z) para grabar", (20, 35),
+            # Textos informativos en pantalla
+            cv2.putText(frame, "Grabador de Senas - Pulsa una letra (A-Z) para grabar", (20, 35),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2, cv2.LINE_AA)
-            cv2.putText(frame, "Pulsa 'T' para REENTRENAR  |  Pulsa 'Q' para SALIR", (20, 65),
+            cv2.putText(frame, "[ENTER] GUARDAR Y REENTRENAR  |  [ESC] SALIR", (20, 65),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 220, 255), 1, cv2.LINE_AA)
 
             # Mensaje de estado inferior
@@ -126,11 +126,14 @@ def main():
             cv2.imshow(window_name, frame)
 
             key = cv2.waitKey(1) & 0xFF
-            if key == 27 or key == ord('q') or key == ord('Q'):
+
+            # Tecla ESC (27) para salir únicamente (Q y T quedan libres para capturar)
+            if key == 27:
+                print("\nCerrando grabador de señas...")
                 break
 
-            # Tecla 'T': Reentrenar el modelo con los datos
-            elif key == ord('t') or key == ord('T'):
+            # Tecla ENTER (13) para guardar y reentrenar el modelo
+            elif key == 13:
                 print("\n[Reentrenamiento] Entrenando modelo con las muestras recopiladas...")
                 message = "Reentrenando modelo, por favor espera unos segundos..."
                 message_color = (0, 200, 255)
@@ -139,6 +142,17 @@ def main():
                 message = "¡Modelo reentrenado con éxito con tus datos reales!"
                 message_color = (0, 255, 0)
                 print("[Reentrenamiento] ¡Listo!")
+
+            # Tecla ESPACIO (32) para capturar la seña de espacio
+            elif key == 32:
+                if not hand_present:
+                    message = "Por favor pon tu mano visible para grabar 'ESPACIO'"
+                    message_color = (0, 100, 255)
+                else:
+                    capturing_label = "ESPACIO"
+                    captured_count = 0
+                    message = "Iniciando captura para 'ESPACIO'..."
+                    message_color = (0, 255, 255)
 
             # Teclas alfanuméricas de letras (A-Z)
             elif 65 <= key <= 90 or 97 <= key <= 122:

@@ -96,7 +96,7 @@ def draw_hud(frame: np.ndarray, letter: str, confidence: float, buffer_text: str
                 cv2.FONT_HERSHEY_SIMPLEX, 0.85, (255, 255, 255), 2, cv2.LINE_AA)
 
     # Barra informativa de controles en pantalla
-    controls_text = "[C] Limpiar Texto  |  [ESPACIO] Separar  |  [Q] Salir"
+    controls_text = "[ESC] Salir  |  [BORRAR / BACKSPACE] Limpiar  |  [ESPACIO] Separar"
     cv2.putText(frame, controls_text, (20, 85),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.48, (200, 220, 240), 1, cv2.LINE_AA)
 
@@ -107,9 +107,9 @@ def main():
     print("\n" + "=" * 70)
     print("  INICIANDO VISOR DE CÁMARA DE ESCRITORIO (OpenCV)")
     print("  Controles interactivos en la ventana:")
-    print("    - Tecla 'C': Limpiar texto acumulado")
-    print("    - Tecla 'ESPACIO': Añadir un espacio entre palabras")
-    print("    - Tecla 'Q' o ESC: Salir del programa")
+    print("    - Tecla [ESC]: Salir del programa")
+    print("    - Tecla [BORRAR / BACKSPACE]: Limpiar texto acumulado")
+    print("    - Tecla [ESPACIO]: Añadir un espacio entre palabras")
     print("=" * 70 + "\n")
 
     # Inicializamos detector y clasificador
@@ -219,13 +219,13 @@ def main():
             # Capturamos teclas presionadas (espera de 1 ms)
             key = cv2.waitKey(1) & 0xFF
 
-            # Tecla 'Q' o ESC (27) para salir
-            if key == ord('q') or key == ord('Q') or key == 27:
+            # Tecla ESC (27) para salir únicamente (liberando 'Q')
+            if key == 27:
                 print("\nCerrando ventana de cámara...")
                 break
 
-            # Tecla 'C' para limpiar el búfer
-            elif key == ord('c') or key == ord('C'):
+            # Tecla BACKSPACE (8) o 'C' para limpiar el búfer
+            elif key == 8 or key == ord('c') or key == ord('C'):
                 buffer_mgr.clear_buffer()
                 print("[Acción] Búfer de texto limpiado.")
 

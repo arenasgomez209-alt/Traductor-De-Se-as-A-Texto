@@ -188,9 +188,10 @@ Abre la cámara web local y muestra el esqueleto de la mano, la seña detectada 
 python run_camera_desktop.py
 ```
 *Controles:*
-- `C`: Limpiar texto acumulado.
+- `ESC`: Salir del programa (dejando la tecla 'Q' libre para el abecedario).
+- `BORRAR / BACKSPACE` o `C`: Limpiar texto acumulado.
 - `ESPACIO`: Agregar un espacio en blanco.
-- `Q` o `ESC`: Salir.
+- *(En `capturar_señas.py`, presiona `ENTER` para guardar/reentrenar, dejando la 'T' libre para la seña).*
 
 ---
 
