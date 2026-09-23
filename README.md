@@ -4,6 +4,7 @@
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-1.0.1-007FFF.svg?logo=google&logoColor=white)](https://developers.google.com/mediapipe)
 [![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.4+-F7931E.svg?logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
 [![Python](https://img.shields.io/badge/Python-3.10%20|%203.11%20|%203.12%20|%203.13%20|%203.14-blue.svg?logo=python&logoColor=white)](https://python.org)
+[![Render](https://img.shields.io/badge/Render-Live%20Demo-46E3B7.svg?logo=render&logoColor=white)](https://traductor-de-se-as-a-texto.onrender.com)
 
 > **Monorepo oficial para la traducción en tiempo real de Lengua de Señas a Texto orientada a ventanillas de servicio al cliente.**
 
@@ -12,6 +13,7 @@
 ## 📌 1. Información General del Proyecto y Entrega
 
 - **Repositorio Monorepo GitHub:** [https://github.com/arenasgomez209-alt/Traductor-De-Se-as-A-Texto.git](https://github.com/arenasgomez209-alt/Traductor-De-Se-as-A-Texto.git)
+- **Despliegue en Vivo (Render):** [https://traductor-de-se-as-a-texto.onrender.com](https://traductor-de-se-as-a-texto.onrender.com)
 - **Problema Real:** Barreras de comunicación en ventanillas de atención presencial para personas con discapacidad auditiva, permitiendo que el personal asesor reciba en texto legible lo que el usuario comunica mediante lengua de señas en tiempo real.
 
 ### 👥 Integrantes del Equipo
@@ -24,12 +26,14 @@
 
 ## 🔗 2. Enlaces de Despliegue y Documentación
 
-| Componente | URL Local | Descripción |
-| :--- | :--- | :--- |
-| **Backend Swagger UI** | [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) | Documentación interactiva OpenAPI/Swagger de los endpoints |
-| **Backend ReDoc** | [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc) | Documentación técnica alternativa de la API |
-| **Frontend Web** | [http://127.0.0.1:8000/](http://127.0.0.1:8000/) | Interfaz visual interactiva con feed de cámara y búfer de texto |
-| **OpenAPI Schema** | [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json) | Especificación JSON cruda para clientes externos |
+> 🚀 **Aplicación Desplegada en Producción:** [https://traductor-de-se-as-a-texto.onrender.com](https://traductor-de-se-as-a-texto.onrender.com)
+
+| Componente | URL en Producción (Render) | URL Local | Descripción |
+| :--- | :--- | :--- | :--- |
+| **Frontend Web (App)** | [traductor-de-se-as-a-texto.onrender.com](https://traductor-de-se-as-a-texto.onrender.com) | [http://127.0.0.1:8000/](http://127.0.0.1:8000/) | Interfaz visual interactiva con feed de cámara y búfer de texto |
+| **Backend Swagger UI** | [onrender.com/docs](https://traductor-de-se-as-a-texto.onrender.com/docs) | [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) | Documentación interactiva OpenAPI/Swagger de los endpoints |
+| **Backend ReDoc** | [onrender.com/redoc](https://traductor-de-se-as-a-texto.onrender.com/redoc) | [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc) | Documentación técnica alternativa de la API |
+| **OpenAPI Schema** | [onrender.com/openapi.json](https://traductor-de-se-as-a-texto.onrender.com/openapi.json) | [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json) | Especificación JSON cruda para clientes externos |
 
 ---
 
@@ -205,6 +209,9 @@ python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ---
 
 ## 🚀 6.1. Despliegue en la Nube con Render (render.com)
+
+> 🟢 **Servicio en Producción Disponible:** [https://traductor-de-se-as-a-texto.onrender.com](https://traductor-de-se-as-a-texto.onrender.com)  
+> *Incluye soporte HTTPS nativo que permite el acceso seguro a la cámara web directamente desde el navegador.*
 
 El proyecto está 100% preparado para ser desplegado en **Render** como un **Web Service**:
 
