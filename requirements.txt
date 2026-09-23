@@ -7,8 +7,8 @@ fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
 # Validación y tipado de datos
 pydantic>=2.6.0
-# Visión por computadora y procesamiento de video
-opencv-python>=4.9.0
+# Visión por computadora y procesamiento de video (headless para Render y servidores en la nube)
+opencv-python-headless>=4.9.0
 # Detección de manos y extracción de keypoints (Google MediaPipe)
 mediapipe>=0.10.0
 # Algoritmos de Machine Learning (RandomForestClassifier)

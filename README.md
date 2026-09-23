@@ -204,6 +204,36 @@ python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 
 ---
 
+## 🚀 6.1. Despliegue en la Nube con Render (render.com)
+
+El proyecto está 100% preparado para ser desplegado en **Render** como un **Web Service**:
+
+### Método 1: Despliegue Automático con Blueprint (Recomendado)
+1. Ve a tu panel de **[Render](https://dashboard.render.com/)**.
+2. Haz clic en **New +** y selecciona **Blueprint**.
+3. Conecta este repositorio de GitHub.
+4. Render detectará automáticamente el archivo [render.yaml](file:///render.yaml) y configurará el servicio con Python 3.11, el comando de build y el comando de arranque con `$PORT`.
+5. Haz clic en **Apply**. ¡Tu aplicación estará online en unos minutos con HTTPS automático!
+
+### Método 2: Despliegue Manual como Web Service
+Si prefieres crearlo manualmente:
+1. En **Render**, clic en **New +** > **Web Service**.
+2. Conecta tu repositorio.
+3. Configura los siguientes campos:
+   - **Name:** `traductor-lengua-senas`
+   - **Language / Runtime:** `Python`
+   - **Branch:** `main`
+   - **Build Command:** `pip install --upgrade pip && pip install -r requirements.txt`
+   - **Start Command:** `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT` (o `python main.py`)
+   - **Environment Variables:**
+     - `PYTHON_VERSION`: `3.11.9`
+4. Clic en **Create Web Service**.
+
+> [!NOTE]
+> Al estar desplegado en Render con HTTPS, el navegador web permitirá el acceso seguro a la cámara web sin ningún bloqueo de seguridad.
+
+---
+
 ## 🎤 7. Guión para la Exposición Presencial (Máximo 15 Minutos)
 
 Para cumplir con el segundo requerimiento de entrega, este guión divide los 15 minutos de forma cronometrada y profesional:
