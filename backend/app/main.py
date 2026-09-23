@@ -244,3 +244,13 @@ if os.path.exists(FRONTEND_DIR):
         if os.path.exists(index_path):
             return FileResponse(index_path)
         return {"message": "Visita /docs para consultar la documentación Swagger de la API."}
+
+if __name__ == "__main__":
+    import uvicorn
+    raw_port = os.environ.get("PORT", "8000")
+    try:
+        port = int(raw_port)
+    except ValueError:
+        port = 8000
+    uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
+

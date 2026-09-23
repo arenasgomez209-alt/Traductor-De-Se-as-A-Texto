@@ -6,6 +6,16 @@ ENV PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive \
     PORT=8000
 
+# Instalar dependencias del sistema requeridas por MediaPipe y OpenCV en Linux
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    libsm6 \
+    libxext6 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Directorio de trabajo en el contenedor
 WORKDIR /app
 
@@ -17,8 +27,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copiar el código fuente completo del proyecto
 COPY . .
 
-# Exponer el puerto predeterminado
+# Exponer el puerto
 EXPOSE 8000
 
-# Comando de inicio compatible con el puerto dinámico asignado por Render ($PORT)
-CMD ["sh", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Iniciar la aplicación usando python main.py para procesar dinámicamente $PORT de Render
+CMD ["python", "main.py"]
