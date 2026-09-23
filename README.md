@@ -18,8 +18,7 @@
 | Nombre Completo | Rol en el Proyecto | Contacto / GitHub |
 | :--- | :--- | :--- |
 | **Matias Arenas Gómez** | Líder de Proyecto / Backend & ML | [@arenasgomez209-alt](https://github.com/arenasgomez209-alt) |
-| *[Nombre Integrante 2]* | Desarrollador Frontend / UI Design | *[Correo / GitHub]* |
-| *[Nombre Integrante 3]* | Ingeniero de Datos & Visión por Computadora | *[Correo / GitHub]* |
+| **Samuel Salcedo Arango** | Co-Líder / Frontend, Datos & UI | [@samuelsalcedo](https://github.com) |
 
 ---
 

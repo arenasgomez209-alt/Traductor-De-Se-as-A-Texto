@@ -1,10 +1,11 @@
 // ==============================================================================
 // LÓGICA PRINCIPAL DEL FRONTEND (app.js)
 // ==============================================================================
-// Gestiona el acceso a la cámara web, el envío de fotogramas al API FastAPI,
-// el consumo de endpoints Swagger (/predict-gesture y /clear-buffer) y la UI reactiva.
+// Gestiona el acceso a la cámara web, el streaming de fotogramas hacia FastAPI,
+// el consumo de endpoints Swagger (/predict-gesture y /clear-buffer),
+// el HUD interactivo, animaciones y herramientas de accesibilidad (TTS y Copiado).
 
-// Elementos del Document Object Model (DOM)
+// 1. Elementos del Document Object Model (DOM)
 const video = document.getElementById('webcamVideo');
 const canvas = document.getElementById('landmarkCanvas');
 const ctx = canvas.getContext('2d');
@@ -12,26 +13,42 @@ const videoPlaceholder = document.getElementById('videoPlaceholder');
 const toggleCameraBtn = document.getElementById('toggleCameraBtn');
 const stopCameraBtn = document.getElementById('stopCameraBtn');
 const cameraStatus = document.getElementById('cameraStatus');
+const handStatusText = document.getElementById('handStatusText');
+const fpsMeter = document.getElementById('fpsMeter');
+
+// Elementos de la tarjeta de predicción
 const detectedLetter = document.getElementById('detectedLetter');
 const confidenceValue = document.getElementById('confidenceValue');
 const confidenceBar = document.getElementById('confidenceBar');
+const confidenceTag = document.getElementById('confidenceTag');
+
+// Elementos del búfer de texto y estadísticas
 const bufferDisplay = document.getElementById('bufferDisplay');
+const wordCount = document.getElementById('wordCount');
+const charCount = document.getElementById('charCount');
 const clearBufferBtn = document.getElementById('clearBufferBtn');
 const addSpaceBtn = document.getElementById('addSpaceBtn');
-const fpsMeter = document.getElementById('fpsMeter');
-const quickButtons = document.getElementById('quickButtons');
+const copyBufferBtn = document.getElementById('copyBufferBtn');
+const speakBufferBtn = document.getElementById('speakBufferBtn');
 
-// Variables de estado interno
+// Simulador y notificaciones
+const quickButtons = document.getElementById('quickButtons');
+const toastNotification = document.getElementById('toastNotification');
+const toastMessage = document.getElementById('toastMessage');
+
+// 2. Variables de estado interno
 let isStreaming = false;
 let streamInstance = null;
 let processInterval = null;
 let lastFrameTime = performance.now();
 let frameCounter = 0;
+let lastDetectedLetter = '-';
+let toastTimeout = null;
 
 // URL base del backend de FastAPI
 const API_BASE = window.location.origin;
 
-// Conexiones de los 21 puntos clave de la mano para dibujar el esqueleto en el canvas
+// Conexiones de los 21 puntos anatómicos clave de la mano para dibujar el esqueleto en el canvas
 const HAND_CONNECTIONS = [
   [0, 1], [1, 2], [2, 3], [3, 4],       // Pulgar
   [0, 5], [5, 6], [6, 7], [7, 8],       // Índice
@@ -40,7 +57,7 @@ const HAND_CONNECTIONS = [
   [13, 17], [0, 17], [17, 18], [18, 19], [19, 20] // Meñique
 ];
 
-// Función para inicializar y encender la cámara web
+// 3. Control y Manejo del Feed de la Cámara Web
 async function startCamera() {
   try {
     // Solicitamos acceso al dispositivo de video del usuario
@@ -71,33 +88,29 @@ async function startCamera() {
 
   } catch (err) {
     console.error('Error al acceder a la cámara:', err);
-    alert('No se pudo acceder a la cámara web. Puedes probar los endpoints con los botones de simulación rápida.');
+    showToast('No se pudo acceder a la cámara. Prueba el simulador rápido inferior.', 4000);
   }
 }
 
-// Función para detener la transmisión de la cámara
 function stopCamera() {
   if (streamInstance) {
-    // Detenemos todas las pistas activas del stream
     streamInstance.getTracks().forEach(track => track.stop());
     streamInstance = null;
   }
-  // Limpiamos el intervalo de procesamiento
   if (processInterval) {
     clearInterval(processInterval);
     processInterval = null;
   }
-  // Limpiamos el canvas gráfico
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // Restablecemos el estado visual
   isStreaming = false;
   videoPlaceholder.style.display = 'flex';
   cameraStatus.querySelector('.status-indicator').classList.remove('active');
   cameraStatus.querySelector('.status-label').textContent = 'Cámara Inactiva';
+  if (handStatusText) handStatusText.textContent = 'Cámara inactiva';
   fpsMeter.textContent = 'FPS: --';
 }
 
-// Función para capturar un fotograma del video y enviarlo al endpoint /api/v1/predict-frame
+// 4. Captura y Envío de Fotogramas al Backend
 async function captureAndSendFrame() {
   if (!isStreaming || video.readyState !== 4) return;
 
@@ -107,14 +120,13 @@ async function captureAndSendFrame() {
   tempCanvas.height = 480;
   const tempCtx = tempCanvas.getContext('2d');
 
-  // Dibujamos el cuadro actual del video escalado con nitidez
+  // Dibujamos el fotograma actual
   tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
 
-  // Convertimos a cadena Base64 en formato JPEG de alta calidad
+  // Convertimos a Base64 en formato JPEG comprimido
   const base64Image = tempCanvas.toDataURL('image/jpeg', 0.85);
 
   try {
-    // Enviamos petición POST al backend
     const res = await fetch(`${API_BASE}/api/v1/predict-frame`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -123,18 +135,19 @@ async function captureAndSendFrame() {
 
     if (res.ok) {
       const data = await res.json();
-      // Actualizamos los elementos de la interfaz con los resultados
       updateUI(data.letter, data.confidence, data.buffer);
 
-      // Si se retornaron puntos clave, dibujamos el esqueleto en el canvas
+      // Si se detectaron puntos clave, los graficamos en el canvas HUD
       if (data.landmarks && data.landmarks.length > 0) {
         drawHandSkeleton(data.landmarks);
+        if (handStatusText) handStatusText.textContent = 'Mano Detectada (21 pts)';
       } else {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (handStatusText) handStatusText.textContent = 'Buscando mano...';
       }
     }
 
-    // Calculamos los FPS reales de procesamiento
+    // Cálculo de FPS
     frameCounter++;
     const now = performance.now();
     if (now - lastFrameTime >= 1000) {
@@ -149,15 +162,17 @@ async function captureAndSendFrame() {
   }
 }
 
-// Función para dibujar los puntos y conexiones de la mano en el canvas HTML5
+// 5. Dibujo Anatómico del Esqueleto de la Mano (HTML5 Canvas)
 function drawHandSkeleton(landmarks) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const w = canvas.width;
   const h = canvas.height;
 
-  // Dibujamos las líneas de unión
+  // Dibujamos las líneas de unión con efecto resplandor cian
   ctx.strokeStyle = '#38bdf8';
   ctx.lineWidth = 3;
+  ctx.shadowColor = 'rgba(56, 189, 248, 0.7)';
+  ctx.shadowBlur = 6;
 
   for (const [startIdx, endIdx] of HAND_CONNECTIONS) {
     const p1 = landmarks[startIdx];
@@ -170,53 +185,101 @@ function drawHandSkeleton(landmarks) {
     }
   }
 
-  // Dibujamos las articulaciones circulares
+  // Dibujamos las articulaciones circulares con puntas de dedos resaltadas
   for (let i = 0; i < landmarks.length; i++) {
     const pt = landmarks[i];
+    const isTip = (i % 4 === 0 && i !== 0); // Puntas de los 5 dedos
+
     ctx.beginPath();
-    ctx.arc(pt.x * w, pt.y * h, (i % 4 === 0 && i !== 0) ? 6 : 4, 0, 2 * Math.PI);
-    ctx.fillStyle = (i % 4 === 0 && i !== 0) ? '#f59e0b' : '#10b981';
+    ctx.arc(pt.x * w, pt.y * h, isTip ? 6 : 4, 0, 2 * Math.PI);
+    ctx.fillStyle = isTip ? '#f59e0b' : '#10b981';
+    ctx.shadowColor = isTip ? 'rgba(245, 158, 11, 0.8)' : 'rgba(16, 185, 129, 0.8)';
+    ctx.shadowBlur = 8;
     ctx.fill();
   }
+
+  // Restablecemos sombra para evitar impacto en otras operaciones
+  ctx.shadowBlur = 0;
 }
 
-// Función para actualizar los elementos visuales de la interfaz
+// 6. Actualización Reactiva de la Interfaz
 function updateUI(letter, confidence, buffer) {
-  // Letra detectada
-  if (letter && letter !== 'NINGUNA' && letter !== 'UNKNOWN') {
-    detectedLetter.textContent = letter;
-  } else {
-    detectedLetter.textContent = '-';
+  // Letra detectada y micro-animación al cambiar
+  const cleanLetter = (letter && letter !== 'NINGUNA' && letter !== 'UNKNOWN') ? letter : '-';
+
+  if (cleanLetter !== lastDetectedLetter) {
+    detectedLetter.textContent = cleanLetter;
+    detectedLetter.classList.remove('pop');
+    void detectedLetter.offsetWidth; // Forzar reflujo para reiniciar animación
+    if (cleanLetter !== '-') {
+      detectedLetter.classList.add('pop');
+    }
+    lastDetectedLetter = cleanLetter;
   }
 
-  // Porcentaje de certeza
+  // Porcentaje y barra de confianza
   const confPct = Math.round((confidence || 0) * 100);
   confidenceValue.textContent = `${confPct}%`;
   confidenceBar.style.width = `${confPct}%`;
 
-  // Cambiamos el color de la barra según el nivel de certeza
   if (confPct >= 80) {
     confidenceBar.style.background = 'linear-gradient(90deg, #38bdf8, #10b981)';
+    if (confidenceTag) {
+      confidenceTag.textContent = 'Confianza Alta';
+      confidenceTag.style.color = '#34d399';
+    }
   } else if (confPct >= 50) {
     confidenceBar.style.background = 'linear-gradient(90deg, #f59e0b, #38bdf8)';
+    if (confidenceTag) {
+      confidenceTag.textContent = 'Confianza Media';
+      confidenceTag.style.color = '#fbbf24';
+    }
   } else {
-    confidenceBar.style.background = '#ef4444';
+    confidenceBar.style.background = '#f43f5e';
+    if (confidenceTag) {
+      confidenceTag.textContent = confPct === 0 ? 'Esperando señal' : 'Baja Certeza';
+      confidenceTag.style.color = '#f87171';
+    }
   }
 
   // Búfer de texto acumulado en ventanilla
-  if (buffer && buffer.trim().length > 0) {
-    bufferDisplay.innerHTML = `<span class="active-text">${escapeHtml(buffer)}</span>`;
+  const currentText = buffer || '';
+  if (currentText.trim().length > 0) {
+    bufferDisplay.innerHTML = `<span class="active-text">${escapeHtml(currentText)}</span>`;
   } else {
-    bufferDisplay.innerHTML = `<p class="placeholder-text">Las palabras traducidas aparecerán aquí a medida que se realicen las señas...</p>`;
+    bufferDisplay.innerHTML = `<p class="placeholder-text">Las palabras traducidas aparecerán aquí en tiempo real...</p>`;
   }
+
+  // Actualización de contadores estadísticos
+  updateStats(currentText);
 }
 
-// Función de escape para prevenir inyecciones de código en HTML
+// Función de conteo de palabras y caracteres
+function updateStats(text) {
+  const chars = text ? text.length : 0;
+  const words = text && text.trim().length > 0 ? text.trim().split(/\s+/).length : 0;
+
+  if (wordCount) wordCount.textContent = `${words} ${words === 1 ? 'palabra' : 'palabras'}`;
+  if (charCount) charCount.textContent = `${chars} ${chars === 1 ? 'caracter' : 'caracteres'}`;
+}
+
+// Función de escape de entidades HTML
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// Evento: Limpieza del búfer de texto llamando a POST /api/v1/clear-buffer
+// Notificación Toast flotante
+function showToast(message, duration = 2400) {
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastMessage.textContent = message;
+  toastNotification.classList.add('show');
+  toastTimeout = setTimeout(() => {
+    toastNotification.classList.remove('show');
+  }, duration);
+}
+
+// 7. Eventos de los Botones del Búfer
+// Limpiar búfer (POST /api/v1/clear-buffer)
 clearBufferBtn.addEventListener('click', async () => {
   try {
     const res = await fetch(`${API_BASE}/api/v1/clear-buffer`, {
@@ -226,31 +289,88 @@ clearBufferBtn.addEventListener('click', async () => {
     if (res.ok) {
       const data = await res.json();
       updateUI('-', 0, data.buffer);
+      showToast('Búfer de texto reiniciado');
     }
   } catch (err) {
     console.error('Error al limpiar el búfer:', err);
   }
 });
 
-// Evento: Añadir espacio al texto
+// Añadir espacio al texto
 addSpaceBtn.addEventListener('click', async () => {
   try {
     const curRes = await fetch(`${API_BASE}/api/v1/buffer`);
     const curData = await curRes.json();
     const newBuf = (curData.buffer || '') + ' ';
     bufferDisplay.innerHTML = `<span class="active-text">${escapeHtml(newBuf)}</span>`;
+    updateStats(newBuf);
+    showToast('Espacio añadido');
   } catch (err) {
     console.error('Error al añadir espacio:', err);
   }
 });
 
-// Configuración de los botones de simulación rápida sin cámara
-// Generamos coordenadas estándar para simular llamadas al endpoint POST /api/v1/predict-gesture
+// Copiar texto al portapapeles
+if (copyBufferBtn) {
+  copyBufferBtn.addEventListener('click', async () => {
+    try {
+      const curRes = await fetch(`${API_BASE}/api/v1/buffer`);
+      const curData = await curRes.json();
+      const textToCopy = (curData.buffer || '').trim();
+
+      if (!textToCopy) {
+        showToast('No hay texto para copiar');
+        return;
+      }
+
+      await navigator.clipboard.writeText(textToCopy);
+      showToast('¡Texto copiado al portapapeles!');
+    } catch (err) {
+      console.warn('Error al copiar al portapapeles:', err);
+      showToast('No se pudo copiar automáticamente');
+    }
+  });
+}
+
+// Síntesis de voz (Text-to-Speech / Escuchar para el Asesor de Ventanilla)
+if (speakBufferBtn) {
+  speakBufferBtn.addEventListener('click', async () => {
+    try {
+      const curRes = await fetch(`${API_BASE}/api/v1/buffer`);
+      const curData = await curRes.json();
+      const textToSpeak = (curData.buffer || '').trim();
+
+      if (!textToSpeak) {
+        showToast('No hay texto acumulado para pronunciar');
+        return;
+      }
+
+      if ('speechSynthesis' in window) {
+        // Cancelamos cualquier locución previa
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = 'es-ES'; // Español estándar
+        utterance.rate = 0.95;    // Velocidad clara y pausada
+        utterance.pitch = 1.0;
+
+        window.speechSynthesis.speak(utterance);
+        showToast('🔊 Reproduciendo audio...');
+      } else {
+        showToast('Tu navegador no soporta síntesis de voz');
+      }
+    } catch (err) {
+      console.error('Error al ejecutar Text-to-Speech:', err);
+    }
+  });
+}
+
+// 8. Botones del Simulador Rápido (Prueba sin Cámara a POST /api/v1/predict-gesture)
 quickButtons.querySelectorAll('.sign-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
     const letter = btn.dataset.letter;
 
-    // Generamos un vector mock de 21 coordenadas representativas
+    // Generamos un vector anatómico mock de 21 coordenadas espaciales
     const dummyLandmarks = [];
     for (let i = 0; i < 21; i++) {
       dummyLandmarks.push({
@@ -261,7 +381,6 @@ quickButtons.querySelectorAll('.sign-btn').forEach(btn => {
     }
 
     try {
-      // Llamada directa al endpoint Swagger POST /api/v1/predict-gesture
       const res = await fetch(`${API_BASE}/api/v1/predict-gesture`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -272,25 +391,24 @@ quickButtons.querySelectorAll('.sign-btn').forEach(btn => {
       });
 
       if (res.ok) {
-        // Obtenemos el texto actual del búfer y simulamos anexo
         const curBufRes = await fetch(`${API_BASE}/api/v1/buffer`);
         const curBufData = await curBufRes.json();
         const updatedBuf = letter === 'ESPACIO' ? (curBufData.buffer + ' ') : (curBufData.buffer + letter);
 
-        // Actualizamos la UI inmediatamente con la letra probada
-        updateUI(letter, 0.95, updatedBuf);
+        updateUI(letter, 0.96, updatedBuf);
       }
     } catch (err) {
-      console.error('Error en prueba rápida:', err);
+      console.error('Error en simulación rápida:', err);
     }
   });
 });
 
-// Eventos de botones de cámara
+// Eventos de controles de cámara
 toggleCameraBtn.addEventListener('click', startCamera);
 stopCameraBtn.addEventListener('click', stopCamera);
 
-// Intentamos encender la cámara automáticamente al cargar la página
+// 9. Inicialización al Cargar la Página
 window.addEventListener('DOMContentLoaded', () => {
+  // Intentamos iniciar la cámara automáticamente
   startCamera();
 });

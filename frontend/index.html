@@ -6,37 +6,57 @@
   <meta charset="UTF-8">
   <!-- Configuración de escala responsiva para móviles y escritorios -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Traductor en tiempo real de Lengua de Señas a Texto para ventanillas de servicio al cliente. Desarrollado con FastAPI, Google MediaPipe y Scikit-Learn.">
   <!-- Título de la pestaña del navegador -->
   <title>Traductor de Lengua de Señas a Texto | Atención al Cliente</title>
-  <!-- Fuente moderna 'Outfit' y 'Inter' desde Google Fonts -->
+  <!-- Fuentes modernas 'Outfit', 'Inter' y 'JetBrains Mono' desde Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
-  <!-- Hoja de estilos CSS propia con diseño moderno -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Hoja de estilos CSS con diseño profesional Glassmorphism 2.0 y Dark Mode -->
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+  <!-- Fondo decorativo con mallas de luz ambiental -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
   <!-- Contenedor principal de la aplicación -->
   <div class="app-container">
 
-    <!-- Encabezado superior con logotipo y estado del microservicio -->
+    <!-- Encabezado superior con logotipo, créditos del equipo y acceso al API -->
     <header class="app-header">
       <div class="header-brand">
-        <!-- Ícono de accesibilidad y comunicación -->
-        <div class="brand-icon">🤟</div>
+        <!-- Ícono de accesibilidad y comunicación con brillo estelar -->
+        <div class="brand-icon-wrapper">
+          <div class="brand-icon">🤟</div>
+          <span class="icon-pulse"></span>
+        </div>
         <div class="brand-info">
-          <!-- Título principal del caso de uso -->
-          <h1 class="brand-title">Traductor de Lengua de Señas a Texto</h1>
-          <!-- Subtítulo con descripción del problema social real -->
-          <p class="brand-subtitle">Módulo de accesibilidad para ventanillas de atención al cliente</p>
+          <div class="brand-title-row">
+            <h1 class="brand-title">Traductor de Lengua de Señas</h1>
+            <span class="version-tag">v1.0.0</span>
+          </div>
+          <p class="brand-subtitle">Módulo de accesibilidad en tiempo real para ventanillas de atención</p>
         </div>
       </div>
-      <!-- Enlaces y botones de acción rápida en el encabezado -->
+
+      <!-- Barra de integrantes y enlaces rápidos a Swagger -->
       <div class="header-actions">
+        <!-- Badge con los 2 integrantes del equipo -->
+        <div class="team-header-pill" title="Equipo de Desarrollo">
+          <span class="team-dot"></span>
+          <span class="team-label">Equipo:</span>
+          <strong>Matias Arenas Gómez</strong>
+          <span class="team-sep">•</span>
+          <strong>Samuel Salcedo Arango</strong>
+        </div>
+
         <!-- Enlace interactivo hacia la documentación Swagger UI generada por FastAPI -->
-        <a href="/docs" target="_blank" class="swagger-badge" title="Abrir documentación Swagger">
+        <a href="/docs" target="_blank" class="nav-badge swagger-badge" title="Abrir documentación Swagger UI">
           <span class="pulse-dot"></span>
-          <span>Swagger API (/docs)</span>
+          <span>Swagger API</span>
         </a>
       </div>
     </header>
@@ -44,28 +64,53 @@
     <!-- Área principal con diseño en dos columnas: Visor de cámara y Panel de traducción -->
     <main class="main-layout">
 
-      <!-- Columna izquierda: Visor de cámara web en vivo -->
+      <!-- Columna izquierda: Visor de cámara web en vivo con HUD -->
       <section class="video-section card">
         <div class="card-header">
-          <h2 class="card-title">📹 Entrada de Video en Vivo</h2>
+          <div class="card-title-group">
+            <span class="section-icon">📹</span>
+            <h2 class="card-title">Entrada de Video en Tiempo Real</h2>
+          </div>
           <!-- Selector de estado de cámara -->
           <div class="camera-status" id="cameraStatus">
-            <span class="status-indicator active"></span>
-            <span class="status-label">Cámara Activa</span>
+            <span class="status-indicator"></span>
+            <span class="status-label">Cámara Inactiva</span>
           </div>
         </div>
 
-        <!-- Contenedor del reproductor de video y canvas de anotaciones -->
-        <div class="video-wrapper">
+        <!-- Contenedor del reproductor de video con HUD y canvas de anotaciones -->
+        <div class="video-viewport">
+          <!-- Esquinas tecnológicas tipo visor HUD -->
+          <div class="hud-corner top-left"></div>
+          <div class="hud-corner top-right"></div>
+          <div class="hud-corner bottom-left"></div>
+          <div class="hud-corner bottom-right"></div>
+
+          <!-- Badges flotantes sobre el video -->
+          <div class="hud-overlays">
+            <div class="hud-pill" id="handTrackerStatus">
+              <span class="radar-dot"></span>
+              <span id="handStatusText">Buscando mano...</span>
+            </div>
+            <div class="hud-pill fps-pill" id="fpsMeter">FPS: --</div>
+          </div>
+
           <!-- Elemento de video HTML5 para capturar el feed de la cámara -->
           <video id="webcamVideo" autoplay playsinline muted></video>
-          <!-- Canvas superpuesto para capturar fotogramas y dibujar puntos clave -->
+          <!-- Canvas superpuesto para capturar fotogramas y dibujar los 21 keypoints -->
           <canvas id="landmarkCanvas"></canvas>
-          <!-- Mensaje superpuesto en caso de cámara inactiva -->
+
+          <!-- Pantalla superpuesta cuando la cámara está apagada -->
           <div class="video-placeholder" id="videoPlaceholder">
-            <div class="placeholder-icon">📷</div>
-            <p>Habilita la cámara web o usa las señas de prueba rápida abajo</p>
-            <button id="toggleCameraBtn" class="btn btn-primary">Encender Cámara</button>
+            <div class="placeholder-graphic">
+              <div class="placeholder-ring"></div>
+              <div class="placeholder-icon">📷</div>
+            </div>
+            <h3 class="placeholder-title">Cámara Desconectada</h3>
+            <p class="placeholder-sub">Concede permiso a tu cámara web para la detección continua de señas o usa el simulador rápido inferior.</p>
+            <button id="toggleCameraBtn" class="btn btn-primary btn-glow">
+              <span>▶ Iniciar Cámara Web</span>
+            </button>
           </div>
         </div>
 
@@ -74,53 +119,87 @@
           <button id="stopCameraBtn" class="btn btn-secondary">
             <span>⏸️ Pausar Cámara</span>
           </button>
-          <span class="fps-meter" id="fpsMeter">FPS: --</span>
+          <div class="video-hint">
+            <span>💡 Consejo: Mantén tu mano a 40-70 cm con buena iluminación</span>
+          </div>
         </div>
       </section>
 
-      <!-- Columna derecha: Tarjeta de letra detectada y búfer acumulado -->
+      <!-- Columna derecha: Tarjetas de traducción, búfer y simulación -->
       <section class="panel-section">
 
         <!-- Tarjeta de Seña Actual Reconocida -->
         <div class="card gesture-card">
           <div class="card-header">
-            <h2 class="card-title">🎯 Seña Detectada</h2>
+            <div class="card-title-group">
+              <span class="section-icon">🎯</span>
+              <h2 class="card-title">Seña Detectada</h2>
+            </div>
             <span class="ai-badge">MediaPipe + RandomForest</span>
           </div>
+
           <div class="gesture-display">
-            <!-- Letra grande predicha -->
-            <div class="detected-letter" id="detectedLetter">-</div>
+            <!-- Letra predicha con efecto resplandor -->
+            <div class="letter-box">
+              <span class="detected-letter" id="detectedLetter">-</span>
+              <span class="letter-glow" id="letterGlow"></span>
+            </div>
+
             <!-- Medidor de certeza / confianza -->
             <div class="confidence-container">
-              <div class="confidence-labels">
-                <span>Nivel de Confianza:</span>
-                <strong id="confidenceValue">0%</strong>
+              <div class="confidence-header">
+                <span class="confidence-caption">Nivel de Confianza:</span>
+                <span class="confidence-value" id="confidenceValue">0%</span>
               </div>
               <div class="confidence-track">
                 <div class="confidence-bar" id="confidenceBar"></div>
+              </div>
+              <div class="confidence-meta">
+                <span class="confidence-tag" id="confidenceTag">Esperando señal</span>
+                <span class="debounce-tag">Debounce: 5 frames</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Tarjeta del Búfer de Texto Acumulado en Ventanilla -->
+        <!-- Tarjeta del Búfer de Texto para Ventanilla de Atención al Cliente -->
         <div class="card buffer-card">
           <div class="card-header">
-            <h2 class="card-title">💬 Texto para el Asesor de Ventanilla</h2>
+            <div class="card-title-group">
+              <span class="section-icon">💬</span>
+              <h2 class="card-title">Texto para el Asesor de Ventanilla</h2>
+            </div>
             <span class="buffer-badge">Búfer en Memoria</span>
           </div>
-          <!-- Área de texto del cliente -->
-          <div class="buffer-display" id="bufferDisplay">
-            <p class="placeholder-text">Las palabras traducidas aparecerán aquí a medida que se realicen las señas...</p>
+
+          <!-- Pantalla de transcripción -->
+          <div class="buffer-container">
+            <div class="buffer-display" id="bufferDisplay">
+              <p class="placeholder-text">Las palabras traducidas aparecerán aquí en tiempo real...</p>
+            </div>
+            <!-- Estadísticas en tiempo real del mensaje -->
+            <div class="buffer-stats">
+              <span id="wordCount">0 palabras</span>
+              <span class="stats-sep">•</span>
+              <span id="charCount">0 caracteres</span>
+            </div>
           </div>
-          <!-- Acciones sobre el búfer -->
+
+          <!-- Acciones sobre el búfer con botones de accesibilidad -->
           <div class="buffer-actions">
             <!-- Botón para ejecutar el endpoint POST /api/v1/clear-buffer -->
-            <button id="clearBufferBtn" class="btn btn-danger">
-              <span>🗑️ Limpiar Búfer (POST /clear-buffer)</span>
+            <button id="clearBufferBtn" class="btn btn-danger" title="Borrar todo el texto acumulado">
+              <span>🗑️ Limpiar Texto</span>
             </button>
-            <button id="addSpaceBtn" class="btn btn-secondary">
-              <span>␣ Añadir Espacio</span>
+            <button id="addSpaceBtn" class="btn btn-secondary" title="Añadir un espacio entre palabras">
+              <span>␣ Espacio</span>
+            </button>
+            <!-- Nuevas herramientas profesionales de ventanilla -->
+            <button id="copyBufferBtn" class="btn btn-action" title="Copiar mensaje al portapapeles">
+              <span>📋 Copiar</span>
+            </button>
+            <button id="speakBufferBtn" class="btn btn-action" title="Escuchar pronunciación del texto">
+              <span>🔊 Escuchar</span>
             </button>
           </div>
         </div>
@@ -128,11 +207,16 @@
         <!-- Tarjeta de Prueba Rápida con Señas Preconfiguradas (Simulador sin cámara) -->
         <div class="card simulation-card">
           <div class="card-header">
-            <h3 class="card-subtitle">⚡ Simulador de Señas (Prueba Rápida al API)</h3>
+            <div class="card-title-group">
+              <span class="section-icon">⚡</span>
+              <h3 class="card-subtitle">Simulador de Señas (Prueba Rápida al API)</h3>
+            </div>
+            <span class="endpoint-chip">POST /api/v1/predict-gesture</span>
           </div>
-          <p class="simulation-desc">Presiona cualquier letra para enviar sus 21 coordenadas al endpoint <code>POST /api/v1/predict-gesture</code>:</p>
+          <p class="simulation-desc">
+            Haz clic en cualquier letra para enviar sus 21 coordenadas anatómicas mock al clasificador:
+          </p>
           <div class="quick-buttons" id="quickButtons">
-            <!-- Botones generados dinámicamente o predefinidos -->
             <button class="sign-btn" data-letter="A">A</button>
             <button class="sign-btn" data-letter="B">B</button>
             <button class="sign-btn" data-letter="C">C</button>
@@ -147,18 +231,54 @@
             <button class="sign-btn" data-letter="V">V</button>
             <button class="sign-btn" data-letter="W">W</button>
             <button class="sign-btn" data-letter="Y">Y</button>
-            <button class="sign-btn" data-letter="ESPACIO">␣ Espacio</button>
+            <button class="sign-btn sign-btn-space" data-letter="ESPACIO">␣ Espacio</button>
           </div>
         </div>
 
       </section>
     </main>
 
-    <!-- Pie de página con información del proyecto y del equipo -->
+    <!-- Pie de página institucional y créditos del equipo -->
     <footer class="app-footer">
-      <p>Traductor de Lengua de Señas a Texto para Atención al Cliente | Monorepo FastAPI + MediaPipe + Scikit-Learn</p>
+      <div class="footer-team-section">
+        <h4 class="team-section-title">Integrantes del Proyecto</h4>
+        <div class="team-cards-grid">
+          <div class="member-card">
+            <div class="member-avatar">MA</div>
+            <div class="member-info">
+              <strong class="member-name">Matias Arenas Gómez</strong>
+              <span class="member-role">Líder de Proyecto / Backend & Machine Learning</span>
+            </div>
+          </div>
+          <div class="member-card">
+            <div class="member-avatar">SS</div>
+            <div class="member-info">
+              <strong class="member-name">Samuel Salcedo Arango</strong>
+              <span class="member-role">Co-Líder / Frontend, Datos & UI Design</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="footer-copy">
+          Traductor de Lengua de Señas a Texto para Ventanillas de Atención al Cliente &copy; 2026.
+        </p>
+        <div class="tech-pills">
+          <span class="tech-pill">FastAPI</span>
+          <span class="tech-pill">Google MediaPipe</span>
+          <span class="tech-pill">Scikit-Learn</span>
+          <span class="tech-pill">HTML5 Canvas</span>
+        </div>
+      </div>
     </footer>
 
+  </div>
+
+  <!-- Toast flotante para notificaciones (ej. Copiado al portapapeles) -->
+  <div class="toast-notification" id="toastNotification">
+    <span class="toast-icon">✓</span>
+    <span class="toast-message" id="toastMessage">Texto copiado al portapapeles</span>
   </div>
 
   <!-- Script JavaScript con la lógica de conexión y actualización en tiempo real -->
