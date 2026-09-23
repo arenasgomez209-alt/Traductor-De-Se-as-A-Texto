@@ -6,9 +6,10 @@ ENV PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive \
     PORT=8000
 
-# Instalar dependencias del sistema requeridas por MediaPipe (EGL, OpenGL, GLib) y OpenCV en Linux
+# Instalar dependencias del sistema requeridas por MediaPipe (EGL, OpenGL ES, GLib) y OpenCV en Linux
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libegl1 \
+    libgles2 \
     libgl1 \
     libglib2.0-0 \
     libgomp1 \
